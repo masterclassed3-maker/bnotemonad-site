@@ -14,8 +14,7 @@ const GLOBAL_STATS_ABI = [
   { name: "totalSupply", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "totalShares", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "shareRate", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
-
-  // NOTE: this one is reverting in your build environment
+  // NOTE: pendingRewards may revert (you hit this already). We read it safely below.
   { name: "pendingRewards", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
 ] as const;
 
@@ -48,7 +47,7 @@ export type BnoteGlobalStats = {
   shareRate: string;
   pendingRewards: string;
 
-  // bNote price in MON
+  // bNote price in MON (WMON) if derivable
   priceMon?: string;
 
   blockNumber: bigint;
@@ -65,43 +64,26 @@ function trimDecimals(value: string, maxDp: number) {
   return trimmed ? `${a}.${trimmed}` : a;
 }
 
-function toLowerAddr(x: string) {
-  return (x || "").toLowerCase();
+function lowerAddr(a: string) {
+  return (a || "").toLowerCase();
 }
 
-/**
- * priceX18 = token1PerToken0 scaled by 1e18:
- * price = (sqrtPriceX96^2 / 2^192)
- * BigInt-safe (no bigint literals)
- */
-function priceX18FromSqrtPriceX96(sqrtPriceX96: bigint): bigint {
-  const SCALE = BigInt("1000000000000000000"); // 1e18
-  const two = BigInt(2);
-  const Q192 = two ** BigInt(192);
+// Compute price with bigint math, return as 1e18 fixed (E18).
+// For Uniswap V3: price = token1/token0 = (sqrtP^2 / 2^192)
+function priceE18FromSqrtPriceX96(sqrtPriceX96: bigint) {
+  const ONE = BigInt(1);
+  const Q192 = ONE << BigInt(192);
+  const E18 = BigInt("1000000000000000000"); // 1e18
 
-  const num = sqrtPriceX96 * sqrtPriceX96 * SCALE;
-  return num / Q192;
+  const num = sqrtPriceX96 * sqrtPriceX96 * E18;
+  return num / Q192; // E18 fixed
 }
 
-function invertX18(priceX18: bigint): bigint {
-  const ONE_E18 = BigInt("1000000000000000000");
-  const ONE_E36 = ONE_E18 * ONE_E18;
-  if (priceX18 === BigInt(0)) return BigInt(0);
-  return ONE_E36 / priceX18;
-}
-
-async function safeReadBigint<TAbi extends readonly any[]>(args: {
-  address: `0x${string}`;
-  abi: TAbi;
-  functionName: string;
-}): Promise<bigint> {
-  const client = getPublicClient();
-  try {
-    const v = await client.readContract(args as any);
-    return v as bigint;
-  } catch {
-    return BigInt(0);
-  }
+function invertE18(priceE18: bigint) {
+  // inv = 1 / price (in E18) => (1e36 / priceE18)
+  const E36 = BigInt("1000000000000000000000000000000000000"); // 1e36
+  if (priceE18 === BigInt(0)) return BigInt(0);
+  return E36 / priceE18;
 }
 
 // -------------------------
@@ -110,7 +92,6 @@ async function safeReadBigint<TAbi extends readonly any[]>(args: {
 export async function readBnoteGlobalStats(): Promise<BnoteGlobalStats> {
   const client = getPublicClient();
 
-  // Critical reads (these should not revert)
   const [totalSupplyRaw, totalSharesRaw, shareRateRaw, blockNumber] = await Promise.all([
     client.readContract({ address: BNOTE_TOKEN, abi: GLOBAL_STATS_ABI, functionName: "totalSupply" }),
     client.readContract({ address: BNOTE_TOKEN, abi: GLOBAL_STATS_ABI, functionName: "totalShares" }),
@@ -118,14 +99,19 @@ export async function readBnoteGlobalStats(): Promise<BnoteGlobalStats> {
     client.getBlockNumber(),
   ]);
 
-  // Safe read (won't fail build if it reverts)
-  const pendingRewardsRaw = await safeReadBigint({
-    address: BNOTE_TOKEN,
-    abi: GLOBAL_STATS_ABI,
-    functionName: "pendingRewards",
-  });
+  // pendingRewards can revert — read safely so it never breaks builds/SSR.
+  let pendingRewardsRaw: bigint = BigInt(0);
+  try {
+    pendingRewardsRaw = (await client.readContract({
+      address: BNOTE_TOKEN,
+      abi: GLOBAL_STATS_ABI,
+      functionName: "pendingRewards",
+    })) as bigint;
+  } catch {
+    pendingRewardsRaw = BigInt(0);
+  }
 
-  // Price reads (also safe-ish)
+  // Price (bNote in MON) from Uniswap V3 pool
   let priceMon: string | undefined;
   try {
     const [slot0, token0, token1] = await Promise.all([
@@ -135,19 +121,24 @@ export async function readBnoteGlobalStats(): Promise<BnoteGlobalStats> {
     ]);
 
     const sqrtPriceX96 = (slot0 as any)[0] as bigint;
-    const rawPriceX18 = priceX18FromSqrtPriceX96(sqrtPriceX96);
 
-    // We want MON per bNote
-    const bnoteAddr = toLowerAddr(BNOTE_TOKEN);
-    const t0 = toLowerAddr(token0 as string);
-    const t1 = toLowerAddr(token1 as string);
+    // priceE18 = token1 per token0
+    let pE18 = priceE18FromSqrtPriceX96(sqrtPriceX96);
 
-    let monPerBnoteX18 = rawPriceX18;
-    if (t1 === bnoteAddr && t0 !== bnoteAddr) {
-      monPerBnoteX18 = invertX18(rawPriceX18);
+    // We want: MON per bNOTE. If token0 isn't bNOTE, invert.
+    const bnoteAddr = lowerAddr(BNOTE_TOKEN);
+    const t0 = lowerAddr(token0 as string);
+    const t1 = lowerAddr(token1 as string);
+
+    // If neither side is bNote, we can’t label it “bNote in MON” reliably.
+    if (t0 !== bnoteAddr && t1 !== bnoteAddr) {
+      priceMon = undefined;
+    } else {
+      if (t0 !== bnoteAddr) {
+        pE18 = invertE18(pE18);
+      }
+      priceMon = trimDecimals(formatUnits(pE18, 18), 6);
     }
-
-    priceMon = trimDecimals(formatUnits(monPerBnoteX18, 18), 6);
   } catch {
     priceMon = undefined;
   }
@@ -160,7 +151,7 @@ export async function readBnoteGlobalStats(): Promise<BnoteGlobalStats> {
 
     priceMon,
 
-    blockNumber: blockNumber as bigint,
+    blockNumber,
     updatedAtMs: Date.now(),
   };
 }

@@ -36,6 +36,7 @@ const quickNav = [
   ["troubleshooting", "Troubleshooting"],
   ["glossary", "Glossary"],
   ["links", "Contract & Links"],
+  ["treasury-vesting", "Treasury Vesting"], // ✅ added
   ["disclaimer", "Disclaimer"],
 ] as const;
 
@@ -344,6 +345,140 @@ export default function DocsPage() {
               </div>
             </Card>
 
+            {/* ✅ Treasury Vesting (NEW) */}
+            <Card>
+              <SectionTitle
+                id="treasury-vesting"
+                title="bNote Treasury Vesting"
+                subtitle="A majority of supply is time-locked and released on-chain according to a fixed schedule."
+              />
+
+              <p className="mt-4 text-sm text-white/80 leading-relaxed">
+                To strengthen long-term alignment, improve transparency, and mitigate treasury risk, the bNote protocol
+                uses a time-based treasury vesting structure on Monad. This ensures that a majority of the bNote supply
+                cannot be moved or sold instantly, and is instead released gradually according to a deterministic,
+                on-chain schedule. This change was made proactively to improve trust guarantees for users, liquidity
+                providers, and third-party risk engines, and it has already resulted in the removal of external
+                “suspicious token” warnings.
+              </p>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                  <div className="text-xs text-white/60">Blockchain</div>
+                  <div className="mt-1 font-semibold">Monad</div>
+
+                  <div className="mt-4 text-xs text-white/60">Token Contract Address</div>
+                  <div className="mt-1 font-mono text-sm text-white/85 break-all">
+                    0x20780bF9eb35235cA33c62976CF6de5AA3395561
+                  </div>
+
+                  <div className="mt-4 text-xs text-white/60">Vesting Contract Address</div>
+                  <div className="mt-1 font-mono text-sm text-white/85 break-all">
+                    0xA512Dd0e6C42775784AC8cA6c438AaD9A17a6596
+                  </div>
+
+                  <div className="mt-4 text-xs text-white/60">Beneficiary (Treasury Wallet)</div>
+                  <div className="mt-1 font-mono text-sm text-white/85 break-all">
+                    0x48b35f0cccfb48ef88adf583384ea41faf79d23c
+                  </div>
+
+                  <div className="mt-4 text-xs text-white/55 leading-relaxed">
+                    Contract pattern: <span className="text-white/80 font-semibold">OpenZeppelin VestingWallet</span>{" "}
+                    (industry-standard, audited pattern). The vesting contract is non-EOA and enforces a fixed release schedule.
+                    Once tokens are transferred into it, there is no mechanism to bypass, accelerate, or drain vesting.
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                  <div className="text-xs text-white/60">Total Vested Amount</div>
+                  <div className="mt-1 text-2xl font-black text-white">1,100,000 bNote</div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {[
+                      ["Total bNote Supply", "2,100,000"],
+                      ["% Under Vesting", "~52.38%"],
+                      ["Cliff", "3 months (90 days)"],
+                      ["Vesting Duration", "24 months (730 days)"],
+                      ["Release Type", "Linear after cliff"],
+                      ["Approx. Monthly Rate", "~45,833 bNote"],
+                    ].map(([k, v]) => (
+                      <div key={k} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="text-xs text-white/60">{k}</div>
+                        <div className="mt-1 font-semibold text-white/85">{v}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="text-xs font-semibold text-white/70">Conceptual timeline</div>
+                    <div className="mt-3 space-y-2 text-xs text-white/70">
+                      <div className="flex items-center justify-between gap-3">
+                        <span>Months 0–3</span>
+                        <span className="text-white/85">Cliff period, no tokens released</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span>Month 4</span>
+                        <span className="text-white/85">First release (~45,833 bNote)</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span>Months 5–27</span>
+                        <span className="text-white/85">Continuous linear vesting</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span>End of Month 27</span>
+                        <span className="text-white/85">100% of vested tokens released</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="text-sm font-semibold text-white">On-chain verifiability</div>
+                <p className="mt-2 text-sm text-white/80 leading-relaxed">
+                  The vesting contract exposes standard view and release functions. Anyone can verify how many bNote are locked,
+                  how many are releasable, and the beneficiary address directly on-chain.
+                </p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="font-mono text-xs text-white/85">releasable(address token)</div>
+                    <div className="mt-1 text-xs text-white/60">
+                      Returns how many bNote can be released at the current time.
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="font-mono text-xs text-white/85">release(address token)</div>
+                    <div className="mt-1 text-xs text-white/60">
+                      Releases only the currently vested amount to the beneficiary.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
+                <div className="text-sm font-semibold text-white">Treasury distribution context (post-vesting)</div>
+                <div className="mt-3 space-y-2 text-sm text-white/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/60">Vesting Contract</span>
+                    <span className="font-semibold">~1,100,000 bNote</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/60">Dev Wallet</span>
+                    <span className="font-semibold">~33,000 bNote</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/60">Liquidity Pools</span>
+                    <span className="font-semibold">Remainder of circulating supply</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-xs text-white/55">
+                  No single externally owned account controls a majority of bNote supply.
+                </div>
+              </div>
+            </Card>
+
             {/* Disclaimer */}
             <Card>
               <SectionTitle
@@ -359,7 +494,6 @@ export default function DocsPage() {
 
             <div className="pb-4 text-xs text-white/50">
               Docs content adapted and restructured from the original bNote staking reference.
-
             </div>
           </div>
         </Container>

@@ -96,6 +96,16 @@ export function GlobalStats() {
           sub="Direct read from pendingRewards()."
         />
       </div>
+{stats.priceMon && (
+  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="text-xs text-white/60">bNote Price (MON)</div>
+    <div className="mt-1 text-lg font-bold">{stats.priceMon} MON</div>
+    <div className="mt-1 text-xs text-white/50">
+      Derived from Uniswap V3 pool · low liquidity
+    </div>
+  </div>
+)}
+
 
       <div className="mt-4 flex flex-col gap-1 text-xs text-white/55">
         <div>Block: {stats ? stats.blockNumber.toString() : "—"}</div>

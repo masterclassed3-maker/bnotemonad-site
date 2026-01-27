@@ -12,8 +12,7 @@ import { readBnoteGlobalStats } from "@/lib/readBnoteGlobalStats";
 
 export default async function HomePage() {
   
-
-  return (
+ const stats = await readBnoteGlobalStats();  return (
     <div className="relative">
       <GlowBG />
       <Nav />
@@ -136,7 +135,7 @@ export default async function HomePage() {
           </div>
         </Container>
       </section>
-const stats = await readBnoteGlobalStats();
+
 {stats.priceMon && (
   <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm">
     <span className="text-white/70">bNote</span>

@@ -45,6 +45,15 @@ export default async function HomePage() {
                 </Button>
               </div>
 
+              {/* ✅ Price badge moved INSIDE hero (so it reliably shows on homepage) */}
+              {stats?.priceMon ? (
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/85">
+                  <span className="text-white/70">bNote</span>
+                  <span className="font-semibold">{stats.priceMon} MON</span>
+                  <span className="text-white/50">• Uniswap</span>
+                </div>
+              ) : null}
+
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
                   ["Fast on Monad", "Optimized for a smooth UX."],
@@ -60,14 +69,6 @@ export default async function HomePage() {
                   </div>
                 ))}
               </div>
-
-              {/* ✅ Price pill belongs inside Container, inside a section */}
-              {stats?.priceMon ? (
-                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm">
-                  <span className="text-white/70">bNote</span>
-                  <span className="font-semibold">{stats.priceMon} MON</span>
-                </div>
-              ) : null}
             </div>
 
             <div className="space-y-4">
@@ -87,8 +88,8 @@ export default async function HomePage() {
                 <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/75">
                   <div className="font-semibold">Security Reminder</div>
                   <div className="mt-1">
-                    Admins will never DM you first. Never share your seed phrase.
-                    Always verify links and contracts.
+                    Admins will never DM you first. Never share your seed
+                    phrase. Always verify links and contracts.
                   </div>
                 </div>
 
@@ -135,7 +136,9 @@ export default async function HomePage() {
                     className="rounded-2xl border border-white/10 bg-white/5 p-4 hover:bg-white/10 transition"
                   >
                     <div className="font-semibold">Community</div>
-                    <div className="mt-1 text-xs text-white/70">Join Telegram.</div>
+                    <div className="mt-1 text-xs text-white/70">
+                      Join Telegram.
+                    </div>
                   </a>
                 </div>
               </div>
@@ -153,40 +156,44 @@ export default async function HomePage() {
 
               <div className="mt-3 space-y-3 text-white/75 leading-relaxed">
                 <p className="font-semibold text-white">
-                  bNote is a staking-focused token built on Monad to reward long-term
-                  participation.
+                  bNote is a staking-focused token built on Monad to reward
+                  long-term participation.
                 </p>
 
                 <p>
-                  By staking bNote, participants lock tokens for a chosen duration and
-                  earn yield based on time commitment rather than short-term trading.
+                  By staking bNote, participants lock tokens for a chosen
+                  duration and earn yield based on time commitment rather than
+                  short-term trading.
                 </p>
 
                 <p>
-                  The protocol operates under transparent rules enforced entirely on-chain,
-                  aligning incentives for users who value clarity and long-term engagement.
+                  The protocol operates under transparent rules enforced
+                  entirely on-chain, aligning incentives for users who value
+                  clarity and long-term engagement.
                 </p>
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                {["Time-locked staking", "Long-term incentives", "On-chain enforced"].map(
-                  (x) => (
-                    <div
-                      key={x}
-                      className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm"
-                    >
-                      {x}
-                    </div>
-                  )
-                )}
+                {[
+                  "Time-locked staking",
+                  "Long-term incentives",
+                  "On-chain enforced",
+                ].map((x) => (
+                  <div
+                    key={x}
+                    className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm"
+                  >
+                    {x}
+                  </div>
+                ))}
               </div>
             </div>
 
             <div id="buy" className="rounded-3xl border border-white/10 bg-white/5 p-7">
               <h2 className="text-2xl font-black">How to Buy</h2>
               <p className="mt-3 text-white/75 leading-relaxed">
-                Use the Monad network on Uniswap. Always verify the contract address
-                before swapping.
+                Use the Monad network on Uniswap. Always verify the contract
+                address before swapping.
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">

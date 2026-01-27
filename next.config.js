@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
-  images: { unoptimized: true },
+  reactStrictMode: true,
+
+  // Helps Node hosting (Hostinger) a lot:
+  output: "standalone",
 };
 
 module.exports = nextConfig;

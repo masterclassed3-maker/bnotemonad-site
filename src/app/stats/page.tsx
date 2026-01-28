@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { GlobalStats } from "@/components/GlobalStats";
+import GlobalStats from "@/components/GlobalStats";
+
 
 export default function StatsPage() {
   return (

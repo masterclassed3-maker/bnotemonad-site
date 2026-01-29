@@ -31,7 +31,12 @@ const BNOTE_TOKEN = "0x20780bF9eb35235cA33c62976CF6de5AA3395561" as const;
 
 // V3 pools (1% fee)
 const BNOTE_WMON_POOL_V3 = "0xf6545a50c7673410f5d88e2417e98531a0ee9a73" as const;
-const BNOTE_USDC_POOL_V3 = "0xB6cDd1ca78AE496D05B3C97b83aFD009AADf53F9" as const;
+
+// UPDATED: new bNote/USDC pool
+const BNOTE_USDC_POOL_V3 = "0x6a5068f4713da6f55c1c5d60bd1ced211644dc90" as const;
+
+// NEW: bNote/WETH pool
+const BNOTE_WETH_POOL_V3 = "0xa7657bd212e79502b4dc3751b13c132f042d7e66" as const;
 
 // Transparency
 const VESTING_CONTRACT = "0xA512Dd0e6C42775784AC8cA6c438AaD9A17a6596" as const;
@@ -77,7 +82,7 @@ const UNIV3_POOL_ABI = [
 
 /**
  * --- Helpers ---
- * NOTE: No BigInt literals (10n, 2n) so TS target < ES2020 builds cleanly.
+ * NOTE: No BigInt literals (10n, 2n, 0n) so TS target < ES2020 builds cleanly.
  */
 const ONE_E18 = BigInt("1000000000000000000");
 const POW2_192 = BigInt("6277101735386680763835789423207666416102355444464034512896"); // 2^192
@@ -239,9 +244,15 @@ type ExtraStats = {
   stakedUsd: number;
   stakedPct: number;
 
+  // Pool snapshots
   liquidityBnoteWmon: string;
   liquidityBnoteUsdc: string;
 
+  // NEW: bNote/WETH pool metrics
+  bnoteWethPrice: number;
+  liquidityBnoteWeth: string;
+
+  // Protocol balances
   vestingBalanceBnote: number;
   tokenContractBalanceBnote: number;
   treasuryBalanceBnote: number;
@@ -267,35 +278,53 @@ export default function GlobalStats() {
   async function load() {
     setLoading(true);
     try {
+      // Base stats via your lib
       const data = await readBnoteGlobalStats();
       setStats(data);
 
+      // bNOTE decimals
       const bnoteDec = Number(
-        await client.readContract({ address: BNOTE_TOKEN, abi: ERC20_ABI, functionName: "decimals" })
+        await client.readContract({
+          address: BNOTE_TOKEN,
+          abi: ERC20_ABI,
+          functionName: "decimals",
+        })
       );
 
+      // Protocol balances
       const [vestingRaw, tokenContractRaw, treasuryRaw] = await Promise.all([
-        client.readContract({ address: BNOTE_TOKEN, abi: ERC20_ABI, functionName: "balanceOf", args: [VESTING_CONTRACT] }),
-        client.readContract({ address: BNOTE_TOKEN, abi: ERC20_ABI, functionName: "balanceOf", args: [BNOTE_TOKEN] }),
-        client.readContract({ address: BNOTE_TOKEN, abi: ERC20_ABI, functionName: "balanceOf", args: [TREASURY_WALLET] }),
+        client.readContract({
+          address: BNOTE_TOKEN,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [VESTING_CONTRACT],
+        }),
+        client.readContract({
+          address: BNOTE_TOKEN,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [BNOTE_TOKEN],
+        }),
+        client.readContract({
+          address: BNOTE_TOKEN,
+          abi: ERC20_ABI,
+          functionName: "balanceOf",
+          args: [TREASURY_WALLET],
+        }),
       ]);
 
       const vestingBalanceBnote = Number(formatUnits(vestingRaw as bigint, bnoteDec));
       const tokenContractBalanceBnote = Number(formatUnits(tokenContractRaw as bigint, bnoteDec));
       const treasuryBalanceBnote = Number(formatUnits(treasuryRaw as bigint, bnoteDec));
 
-      const bnoteUsdcSnap = await readV3PriceAndBalances({
-        client,
-        pool: BNOTE_USDC_POOL_V3,
-        baseToken: BNOTE_TOKEN,
-      });
+      // Pool metrics (USDC + WETH)
+      const [bnoteUsdcSnap, bnoteWethSnap, bnoteWmonSnap] = await Promise.all([
+        readV3PriceAndBalances({ client, pool: BNOTE_USDC_POOL_V3, baseToken: BNOTE_TOKEN }),
+        readV3PriceAndBalances({ client, pool: BNOTE_WETH_POOL_V3, baseToken: BNOTE_TOKEN }),
+        readV3PriceAndBalances({ client, pool: BNOTE_WMON_POOL_V3, baseToken: BNOTE_TOKEN }),
+      ]);
 
-      const bnoteWmonSnap = await readV3PriceAndBalances({
-        client,
-        pool: BNOTE_WMON_POOL_V3,
-        baseToken: BNOTE_TOKEN,
-      });
-
+      // Price USD uses direct bNote/USDC pool
       const bnoteUsd_direct = bnoteUsdcSnap?.priceBaseInQuote ?? NaN;
 
       const totalSupplyNum = parseDisplayNumber(data.totalSupply);
@@ -311,8 +340,14 @@ export default function GlobalStats() {
         stakedBnote,
         stakedUsd,
         stakedPct,
+
         liquidityBnoteWmon: bnoteWmonSnap?.reservesLabel ?? "—",
         liquidityBnoteUsdc: bnoteUsdcSnap?.reservesLabel ?? "—",
+
+        // NEW WETH metrics
+        bnoteWethPrice: bnoteWethSnap?.priceBaseInQuote ?? NaN,
+        liquidityBnoteWeth: bnoteWethSnap?.reservesLabel ?? "—",
+
         vestingBalanceBnote,
         tokenContractBalanceBnote,
         treasuryBalanceBnote,
@@ -350,7 +385,7 @@ export default function GlobalStats() {
           </button>
         </div>
 
-        {/* Layout fix: cap at 3 columns on desktop */}
+        {/* Layout: cap at 3 columns on desktop */}
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard label="Total Supply" value={loading ? "…" : stats?.totalSupply ?? "—"} sub="Total bNote minted" />
           <StatCard label="Total Shares" value={loading ? "…" : stats?.totalShares ?? "—"} sub="All active share units" />
@@ -374,7 +409,11 @@ export default function GlobalStats() {
             sub="Total supply × USD price"
           />
 
-          <StatCard label="Circulating Supply" value={loading ? "…" : stats?.circulatingSupply ?? "—"} sub="Total minus vesting wallet" />
+          <StatCard
+            label="Circulating Supply"
+            value={loading ? "…" : stats?.circulatingSupply ?? "—"}
+            sub="Total minus vesting wallet"
+          />
 
           <StatCard
             label="Staked TVL (bNote)"
@@ -390,7 +429,13 @@ export default function GlobalStats() {
 
           <StatCard
             label="Supply Staked (%)"
-            value={loading ? "…" : extra && Number.isFinite(extra.stakedPct) ? `${fmtNum(extra.stakedPct, 2)}%` : stats?.stakedPct ?? "—"}
+            value={
+              loading
+                ? "…"
+                : extra && Number.isFinite(extra.stakedPct)
+                ? `${fmtNum(extra.stakedPct, 2)}%`
+                : stats?.stakedPct ?? "—"
+            }
             sub="Staked / total supply"
           />
 
@@ -404,6 +449,26 @@ export default function GlobalStats() {
           <StatCard
             label="bNote/USDC Liquidity"
             value={loading ? "…" : extra?.liquidityBnoteUsdc ?? "—"}
+            sub="V3 pool token balances"
+            valueClassName="text-xl"
+          />
+
+          {/* NEW: WETH pool cards (same metrics as USDC pool: price + liquidity) */}
+          <StatCard
+            label="bNote Price (WETH)"
+            value={
+              loading
+                ? "…"
+                : extra && Number.isFinite(extra.bnoteWethPrice)
+                ? `${fmtNum(extra.bnoteWethPrice, 8)} WETH`
+                : "—"
+            }
+            sub="From bNote/WETH V3 pool"
+          />
+
+          <StatCard
+            label="bNote/WETH Liquidity"
+            value={loading ? "…" : extra?.liquidityBnoteWeth ?? "—"}
             sub="V3 pool token balances"
             valueClassName="text-xl"
           />

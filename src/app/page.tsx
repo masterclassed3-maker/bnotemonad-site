@@ -93,15 +93,24 @@ export default async function HomePage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <a href={LINKS.explorer} target="_blank" rel="noreferrer">
-                    <Button variant="secondary">View on MonadScan</Button>
-                  </a>
-                  <Button href={LINKS.docs} variant="secondary">
-                    Docs
-                  </Button>
-                </div>
-              </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+  <a href={LINKS.explorer} target="_blank" rel="noreferrer">
+    <Button variant="secondary">View on MonadScan</Button>
+  </a>
+
+  <a
+    href="/bnote-whitepaper.pdf"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <Button variant="secondary">Whitepaper</Button>
+  </a>
+
+  <Button href={LINKS.docs} variant="secondary">
+    Docs
+  </Button>
+</div>
+
 
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
                 <div className="text-sm text-white/70">Primary Actions</div>

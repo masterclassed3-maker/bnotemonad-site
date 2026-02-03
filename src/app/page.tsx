@@ -46,7 +46,7 @@ export default async function HomePage() {
                 </Button>
               </div>
 
-              {/* Price badge */}
+              {/* Price badge moved INSIDE hero */}
               {stats?.priceMon ? (
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/85">
                   <span className="text-white/70">bNote</span>
@@ -184,7 +184,11 @@ export default async function HomePage() {
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                {["Time-locked staking", "Long-term incentives", "On-chain enforced"].map((x) => (
+                {[
+                  "Time-locked staking",
+                  "Long-term incentives",
+                  "On-chain enforced",
+                ].map((x) => (
                   <div
                     key={x}
                     className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm"

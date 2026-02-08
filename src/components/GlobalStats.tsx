@@ -248,7 +248,7 @@ type ExtraStats = {
   liquidityBnoteWmon: string;
   liquidityBnoteUsdc: string;
 
-  // NEW: bNote/WETH pool metrics
+  // bNote/WETH pool metrics
   bnoteWethPrice: number;
   liquidityBnoteWeth: string;
 
@@ -278,7 +278,7 @@ export default function GlobalStats() {
   async function load() {
     setLoading(true);
     try {
-      // Base stats via your lib
+      // Base stats via your lib (on-chain)
       const data = await readBnoteGlobalStats();
       setStats(data);
 
@@ -291,7 +291,7 @@ export default function GlobalStats() {
         })
       );
 
-      // Protocol balances
+      // Protocol balances (on-chain)
       const [vestingRaw, tokenContractRaw, treasuryRaw] = await Promise.all([
         client.readContract({
           address: BNOTE_TOKEN,
@@ -317,7 +317,7 @@ export default function GlobalStats() {
       const tokenContractBalanceBnote = Number(formatUnits(tokenContractRaw as bigint, bnoteDec));
       const treasuryBalanceBnote = Number(formatUnits(treasuryRaw as bigint, bnoteDec));
 
-      // Pool metrics (USDC + WETH)
+      // Pool metrics (on-chain via V3 pool reads)
       const [bnoteUsdcSnap, bnoteWethSnap, bnoteWmonSnap] = await Promise.all([
         readV3PriceAndBalances({ client, pool: BNOTE_USDC_POOL_V3, baseToken: BNOTE_TOKEN }),
         readV3PriceAndBalances({ client, pool: BNOTE_WETH_POOL_V3, baseToken: BNOTE_TOKEN }),
@@ -344,7 +344,6 @@ export default function GlobalStats() {
         liquidityBnoteWmon: bnoteWmonSnap?.reservesLabel ?? "—",
         liquidityBnoteUsdc: bnoteUsdcSnap?.reservesLabel ?? "—",
 
-        // NEW WETH metrics
         bnoteWethPrice: bnoteWethSnap?.priceBaseInQuote ?? NaN,
         liquidityBnoteWeth: bnoteWethSnap?.reservesLabel ?? "—",
 
@@ -364,6 +363,7 @@ export default function GlobalStats() {
 
   const updatedLine = useMemo(() => {
     if (!stats) return null;
+    // stats.updatedAtMs comes from the lib. Since this is client-only, no hydration mismatch issues.
     return `${new Date(stats.updatedAtMs).toLocaleString()} · Block ${stats.blockNumber}`;
   }, [stats]);
 
@@ -453,7 +453,6 @@ export default function GlobalStats() {
             valueClassName="text-xl"
           />
 
-          {/* NEW: WETH pool cards (same metrics as USDC pool: price + liquidity) */}
           <StatCard
             label="bNote Price (WETH)"
             value={

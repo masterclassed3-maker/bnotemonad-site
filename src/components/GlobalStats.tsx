@@ -42,8 +42,8 @@ const BNOTE_WETH_POOL_V3 = "0xa7657bd212e79502b4dc3751b13c132f042d7e66" as const
 const VESTING_CONTRACT = "0xA512Dd0e6C42775784AC8cA6c438AaD9A17a6596" as const;
 const TREASURY_WALLET = "0x48b35f0CCcfB48eF88aDf583384Ea41FAf79d23c" as const;
 
-// Monad RPC
-const MONAD_RPC = "https://rpc.monad.xyz";
+// Monad RPC (env override supported)
+const MONAD_RPC = process.env.NEXT_PUBLIC_MONAD_RPC || "https://rpc.monad.xyz";
 
 /**
  * --- ABIs (minimal) ---
@@ -248,7 +248,7 @@ type ExtraStats = {
   liquidityBnoteWmon: string;
   liquidityBnoteUsdc: string;
 
-  // bNote/WETH pool metrics
+  // WETH pool
   bnoteWethPrice: number;
   liquidityBnoteWeth: string;
 
@@ -278,7 +278,7 @@ export default function GlobalStats() {
   async function load() {
     setLoading(true);
     try {
-      // Base stats via your lib (on-chain)
+      // Base stats via your lib (on-chain reads only)
       const data = await readBnoteGlobalStats();
       setStats(data);
 
@@ -291,7 +291,7 @@ export default function GlobalStats() {
         })
       );
 
-      // Protocol balances (on-chain)
+      // Protocol balances
       const [vestingRaw, tokenContractRaw, treasuryRaw] = await Promise.all([
         client.readContract({
           address: BNOTE_TOKEN,
@@ -317,14 +317,13 @@ export default function GlobalStats() {
       const tokenContractBalanceBnote = Number(formatUnits(tokenContractRaw as bigint, bnoteDec));
       const treasuryBalanceBnote = Number(formatUnits(treasuryRaw as bigint, bnoteDec));
 
-      // Pool metrics (on-chain via V3 pool reads)
+      // Pool metrics (V3 snapshots only)
       const [bnoteUsdcSnap, bnoteWethSnap, bnoteWmonSnap] = await Promise.all([
         readV3PriceAndBalances({ client, pool: BNOTE_USDC_POOL_V3, baseToken: BNOTE_TOKEN }),
         readV3PriceAndBalances({ client, pool: BNOTE_WETH_POOL_V3, baseToken: BNOTE_TOKEN }),
         readV3PriceAndBalances({ client, pool: BNOTE_WMON_POOL_V3, baseToken: BNOTE_TOKEN }),
       ]);
 
-      // Price USD uses direct bNote/USDC pool
       const bnoteUsd_direct = bnoteUsdcSnap?.priceBaseInQuote ?? NaN;
 
       const totalSupplyNum = parseDisplayNumber(data.totalSupply);
@@ -351,6 +350,8 @@ export default function GlobalStats() {
         tokenContractBalanceBnote,
         treasuryBalanceBnote,
       });
+    } catch {
+      // If anything fails, keep page alive with existing values
     } finally {
       setLoading(false);
     }
@@ -363,7 +364,7 @@ export default function GlobalStats() {
 
   const updatedLine = useMemo(() => {
     if (!stats) return null;
-    // stats.updatedAtMs comes from the lib. Since this is client-only, no hydration mismatch issues.
+    // client-only component, so locale formatting is safe
     return `${new Date(stats.updatedAtMs).toLocaleString()} · Block ${stats.blockNumber}`;
   }, [stats]);
 

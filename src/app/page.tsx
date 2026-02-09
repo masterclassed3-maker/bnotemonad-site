@@ -7,11 +7,8 @@ import { FAQ } from "@/components/FAQ";
 import { StakingStatsLive } from "@/components/StakingStatsLive";
 import { CONTRACT_ADDRESS, LINKS } from "@/lib/constants";
 import { STAKING } from "@/lib/stakingConfig";
-import { readBnoteGlobalStats } from "@/lib/readBnoteGlobalStats";
 
-export default async function HomePage() {
-  const stats = await readBnoteGlobalStats();
-
+export default function HomePage() {
   return (
     <div className="relative">
       <GlowBG />
@@ -46,14 +43,7 @@ export default async function HomePage() {
                 </Button>
               </div>
 
-              {/* Price badge moved INSIDE hero */}
-              {stats?.priceMon ? (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/85">
-                  <span className="text-white/70">bNote</span>
-                  <span className="font-semibold">{stats.priceMon} MON</span>
-                  <span className="text-white/50">• Uniswap</span>
-                </div>
-              ) : null}
+              {/* NOTE: Price badge removed for static export stability */}
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
@@ -89,8 +79,8 @@ export default async function HomePage() {
                 <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/75">
                   <div className="font-semibold">Security Reminder</div>
                   <div className="mt-1">
-                    Admins will never DM you first. Never share your seed
-                    phrase. Always verify links and contracts.
+                    Admins will never DM you first. Never share your seed phrase.
+                    Always verify links and contracts.
                   </div>
                 </div>
 
@@ -177,9 +167,9 @@ export default async function HomePage() {
                 </p>
 
                 <p>
-                  The protocol operates under transparent rules enforced
-                  entirely on-chain, aligning incentives for users who value
-                  clarity and long-term engagement.
+                  The protocol operates under transparent rules enforced entirely
+                  on-chain, aligning incentives for users who value clarity and
+                  long-term engagement.
                 </p>
               </div>
 
@@ -242,7 +232,10 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <StakingStatsLive apy={STAKING.nominalApr} stakeAppUrl={LINKS.stake} />
+            <StakingStatsLive
+              apy={STAKING.nominalApr}
+              stakeAppUrl={LINKS.stake}
+            />
           </div>
         </Container>
       </section>
